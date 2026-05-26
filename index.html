@@ -632,237 +632,237 @@
     }
 
     // ==================== Password Reset ====================
-    
-async function openForgotPassword() {
 
-    const email = prompt("Ingresa tu correo electrónico:");
+    async function openForgotPassword() {
 
-    if (!email) return;
+      const email = prompt("Ingresa tu correo electrónico:");
 
-    try {
+      if (!email) return;
+
+      try {
 
         if (!window.sendPasswordResetEmail) {
-            showToast(
-                "Firebase aún no terminó de cargar",
-                "error"
-            );
-            return;
+          showToast(
+            "Firebase aún no terminó de cargar",
+            "error"
+          );
+          return;
         }
 
         await window.sendPasswordResetEmail(
-            window.firebaseAuth,
-            email
+          window.firebaseAuth,
+          email
         );
 
         showToast(
-            "Se envió un correo para restablecer la contraseña",
-            "success"
+          "Se envió un correo para restablecer la contraseña",
+          "success"
         );
 
-    } 
-    catch (error) {
+      }
+      catch (error) {
 
         console.log(error);
 
         let mensaje = "Error al enviar correo";
 
-        switch(error.code){
+        switch (error.code) {
 
-            case "auth/user-not-found":
-                mensaje = "No existe una cuenta con ese correo";
-                break;
+          case "auth/user-not-found":
+            mensaje = "No existe una cuenta con ese correo";
+            break;
 
-            case "auth/invalid-email":
-                mensaje = "Correo inválido";
-                break;
+          case "auth/invalid-email":
+            mensaje = "Correo inválido";
+            break;
 
-            case "auth/too-many-requests":
-                mensaje = "Demasiados intentos";
-                break;
+          case "auth/too-many-requests":
+            mensaje = "Demasiados intentos";
+            break;
         }
 
         showToast(mensaje, "error");
+      }
     }
-}
 
     // 🚀 INTEGRACIÓN FIREBASE DATA SDK (Importación dinámica)
-  async function initDataSdk() {
-  try {
+    async function initDataSdk() {
+      try {
 
-    // ==================== IMPORTAR MÓDULOS FIREBASE ====================
+        // ==================== IMPORTAR MÓDULOS FIREBASE ====================
 
-    const { initializeApp } = await import(
-      "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"
-    );
+        const { initializeApp } = await import(
+          "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"
+        );
 
-    const {
-      getFirestore,
-      collection,
-      onSnapshot,
-      addDoc,
-      updateDoc,
-      doc,
-      deleteDoc
-    } = await import(
-      "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
-    );
+        const {
+          getFirestore,
+          collection,
+          onSnapshot,
+          addDoc,
+          updateDoc,
+          doc,
+          deleteDoc
+        } = await import(
+          "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
+        );
 
-    const {
-      getAuth,
-      signInWithPopup,
-      GoogleAuthProvider,
-      sendPasswordResetEmail
-    } = await import(
-      "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"
-    );
+        const {
+          getAuth,
+          signInWithPopup,
+          GoogleAuthProvider,
+          sendPasswordResetEmail
+        } = await import(
+          "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"
+        );
 
-    // Guardar función global para usarla después
-    window.sendPasswordResetEmail = sendPasswordResetEmail;
+        // Guardar función global para usarla después
+        window.sendPasswordResetEmail = sendPasswordResetEmail;
 
-    // ==================== CONFIG FIREBASE ====================
+        // ==================== CONFIG FIREBASE ====================
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC9-Utf05XxGAg3d4O5knrcThNqsR003xA",
-      authDomain: "web1-efd17.firebaseapp.com",
-      projectId: "web1-efd17",
-      storageBucket: "web1-efd17.firebasestorage.app",
-      messagingSenderId: "478052226455",
-      appId: "1:478052226455:web:42ab76145a8a418c9520d2",
-      measurementId: "G-1FT5V91RP7"
-    };
+        const firebaseConfig = {
+          apiKey: "AIzaSyC9-Utf05XxGAg3d4O5knrcThNqsR003xA",
+          authDomain: "web1-efd17.firebaseapp.com",
+          projectId: "web1-efd17",
+          storageBucket: "web1-efd17.firebasestorage.app",
+          messagingSenderId: "478052226455",
+          appId: "1:478052226455:web:42ab76145a8a418c9520d2",
+          measurementId: "G-1FT5V91RP7"
+        };
 
-    // ==================== INICIALIZAR ====================
+        // ==================== INICIALIZAR ====================
 
-    const app = initializeApp(firebaseConfig);
+        const app = initializeApp(firebaseConfig);
 
-    const db = getFirestore(app);
+        const db = getFirestore(app);
 
-    window.firebaseAuth = getAuth(app);
+        window.firebaseAuth = getAuth(app);
 
-    window.googleProvider = new GoogleAuthProvider();
+        window.googleProvider = new GoogleAuthProvider();
 
-    // ==================== SDK PERSONALIZADO ====================
+        // ==================== SDK PERSONALIZADO ====================
 
-    window.dataSdk = {
+        window.dataSdk = {
 
-      async init(handler) {
+          async init(handler) {
 
-        const colRef = collection(db, 'tienda_data');
+            const colRef = collection(db, 'tienda_data');
 
-        onSnapshot(colRef, (snapshot) => {
+            onSnapshot(colRef, (snapshot) => {
 
-          const data = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            __backendId: doc.id
-          }));
+              const data = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                __backendId: doc.id
+              }));
 
-          handler.onDataChanged(data);
+              handler.onDataChanged(data);
 
-        });
+            });
 
-        return { isOk: true };
-      },
+            return { isOk: true };
+          },
 
-      async create(data) {
+          async create(data) {
 
-        try {
+            try {
 
-          const docRef = await addDoc(
-            collection(db, 'tienda_data'),
-            data
-          );
+              const docRef = await addDoc(
+                collection(db, 'tienda_data'),
+                data
+              );
 
-          return {
-            isOk: true,
-            data: {
-              ...data,
-              __backendId: docRef.id
+              return {
+                isOk: true,
+                data: {
+                  ...data,
+                  __backendId: docRef.id
+                }
+              };
+
+            } catch (e) {
+
+              console.error(
+                "Error al crear documento:",
+                e
+              );
+
+              return { isOk: false };
             }
-          };
+          },
 
-        } catch (e) {
+          async update(data) {
 
-          console.error(
-            "Error al crear documento:",
-            e
+            try {
+
+              const dataToUpdate = { ...data };
+
+              const id = dataToUpdate.__backendId;
+
+              delete dataToUpdate.__backendId;
+
+              await updateDoc(
+                doc(db, 'tienda_data', id),
+                dataToUpdate
+              );
+
+              return { isOk: true };
+
+            } catch (e) {
+
+              console.error(
+                "Error al actualizar documento:",
+                e
+              );
+
+              return { isOk: false };
+            }
+          },
+
+          async delete(data) {
+
+            try {
+
+              await deleteDoc(
+                doc(db, 'tienda_data', data.__backendId)
+              );
+
+              return { isOk: true };
+
+            } catch (e) {
+
+              console.error(
+                "Error al eliminar documento:",
+                e
+              );
+
+              return { isOk: false };
+            }
+          }
+
+        };
+
+        const result = await window.dataSdk.init(dataHandler);
+
+        if (!result.isOk) {
+          throw new Error(
+            'Fallo al inicializar Firebase SDK'
           );
-
-          return { isOk: false };
         }
-      },
 
-      async update(data) {
+      } catch (error) {
 
-        try {
+        console.error(
+          'Error cargando Firebase:',
+          error
+        );
 
-          const dataToUpdate = { ...data };
+        isLoading = false;
 
-          const id = dataToUpdate.__backendId;
-
-          delete dataToUpdate.__backendId;
-
-          await updateDoc(
-            doc(db, 'tienda_data', id),
-            dataToUpdate
-          );
-
-          return { isOk: true };
-
-        } catch (e) {
-
-          console.error(
-            "Error al actualizar documento:",
-            e
-          );
-
-          return { isOk: false };
-        }
-      },
-
-      async delete(data) {
-
-        try {
-
-          await deleteDoc(
-            doc(db, 'tienda_data', data.__backendId)
-          );
-
-          return { isOk: true };
-
-        } catch (e) {
-
-          console.error(
-            "Error al eliminar documento:",
-            e
-          );
-
-          return { isOk: false };
-        }
+        renderCurrentView();
       }
-
-    };
-
-    const result = await window.dataSdk.init(dataHandler);
-
-    if (!result.isOk) {
-      throw new Error(
-        'Fallo al inicializar Firebase SDK'
-      );
     }
 
-  } catch (error) {
-
-    console.error(
-      'Error cargando Firebase:',
-      error
-    );
-
-    isLoading = false;
-
-    renderCurrentView();
-  }
-}
-    
 
     initDataSdk();
 
@@ -1462,11 +1462,25 @@ async function openForgotPassword() {
               <label class="block text-sm font-medium mb-1">Correo electrónico</label>
               <input type="email" id="register-email" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="tu@email.com">
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Contraseña</label>
-              <input type="password" id="register-password" required minlength="6" class="input-field w-full px-4 py-3 rounded-lg" placeholder="Mínimo 6 caracteres">
-            </div>
-            <div>
+        <div>
+  <label class="block text-sm font-medium mb-1">Contraseña</label>
+  <input type="password" id="login-password" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="••••••••">
+</div>
+
+<div class="text-right">
+  <button 
+    type="button"
+    onclick="openForgotPassword()"
+    class="text-sm text-gray-500 hover:text-black hover:underline">
+
+    ¿Olvidaste tu contraseña?
+
+  </button>
+</div>
+
+<button type="submit" id="login-btn" class="btn-primary w-full py-3 rounded-lg font-medium">
+  Iniciar Sesión
+</button>
               <label class="block text-sm font-medium mb-1">Confirmar contraseña</label>
               <input type="password" id="register-confirm" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="••••••••">
             </div>
@@ -1664,46 +1678,46 @@ async function openForgotPassword() {
     }
     // ==================== Password Reset ====================
 
-async function openForgotPassword() {
+    async function openForgotPassword() {
 
-  const email = prompt(
-    "Ingresa tu correo electrónico para restablecer tu contraseña:"
-  );
+      const email = prompt(
+        "Ingresa tu correo electrónico para restablecer tu contraseña:"
+      );
 
-  if (!email) return;
+      if (!email) return;
 
-  try {
+      try {
 
-    await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, email);
 
-    showToast(
-      "Se envió un correo para restablecer tu contraseña"
-    );
+        showToast(
+          "Se envió un correo para restablecer tu contraseña"
+        );
 
-  } catch (error) {
+      } catch (error) {
 
-    console.error(error);
+        console.error(error);
 
-    let message = "No se pudo enviar el correo";
+        let message = "No se pudo enviar el correo";
 
-    switch(error.code){
+        switch (error.code) {
 
-      case 'auth/user-not-found':
-        message = 'No existe una cuenta con ese correo';
-        break;
+          case 'auth/user-not-found':
+            message = 'No existe una cuenta con ese correo';
+            break;
 
-      case 'auth/invalid-email':
-        message = 'Correo inválido';
-        break;
+          case 'auth/invalid-email':
+            message = 'Correo inválido';
+            break;
 
-      case 'auth/too-many-requests':
-        message = 'Demasiados intentos. Intenta más tarde';
-        break;
+          case 'auth/too-many-requests':
+            message = 'Demasiados intentos. Intenta más tarde';
+            break;
+        }
+
+        showToast(message, 'error');
+      }
     }
-
-    showToast(message,'error');
-  }
-}
 
     // ==================== Cart Functions ====================
     function loadUserCart() {
@@ -3678,7 +3692,7 @@ async function openForgotPassword() {
     </div>
   `;
 
-      document.body.appendChild(overlay);.0
+      document.body.appendChild(overlay); .0
     }
 
     // Función para que el Admin suba la foto de la guía
