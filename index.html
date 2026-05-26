@@ -284,7 +284,7 @@
             <h4 class="font-semibold mb-4">Contacto</h4>
             <div class="flex flex-col gap-2 text-sm text-gray-400 items-center">
               <p id="footer-email">📧 info@luxelixir.com</p>
-              <p id="footer-address">📍 Comitán de Domínguez, Chiapas 10</p>
+              <p id="footer-address">📍 Comitán de Domínguez, Chiapas</p>
             </div>
           </div>
 
@@ -522,22 +522,34 @@
     // ==================== SDK Initialization ====================
     const dataHandler = {
       onDataChanged(data) {
-        // 1. Clasificamos la información entrante en tiempo real
         appData.products = data.filter(d => d.type === 'product');
         appData.users = data.filter(d => d.type === 'user');
+        
+        // 👇 NUEVO: Inyectar usuario demo en la tabla si no existe en Firebase
+        if (!appData.users.find(u => u.email === 'admin@gyg.com')) {
+          appData.users.unshift({
+            __backendId: 'admin-demo-virtual',
+            type: 'user',
+            name: 'Administrador Demo',
+            email: 'admin@gyg.com',
+            password: hashPassword('admin123'),
+            role: 'admin',
+            createdAt: new Date().toISOString()
+          });
+        }
+        // 👆 FIN NUEVO
+
         appData.orders = data.filter(d => d.type === 'order');
         appData.cartItems = data.filter(d => d.type === 'cartItem');
         appData.categories = data.filter(d => d.type === 'category');
 
-        // 2. SOLUCIÓN AL ERROR DE DISEÑO: Obtenemos SIEMPRE la configuración más reciente
         const settingsDocs = data.filter(d => d.type === 'settings');
-        const settingsDoc = settingsDocs.pop(); // Toma el último archivo guardado para evitar leer clones viejos
+        const settingsDoc = settingsDocs.pop();
 
         if (settingsDoc) {
           siteSettings = { ...siteSettings, ...settingsDoc };
         }
 
-        // 3. Actualizamos el carrito del usuario activo
         if (currentUser) {
           const userCartItems = appData.cartItems.filter(item => item.userId === currentUser.__backendId);
           cart = userCartItems.map(item => ({
@@ -548,21 +560,15 @@
 
         isLoading = false;
 
-        // 4. SOLUCIÓN AL ERROR DE SINCRONIZACIÓN: 
-        // Redibujamos la pantalla en tiempo real SOLO si el usuario no está en el panel admin.
-        // (Si redibujamos el panel admin mientras tú escribes, se te borraría el texto).
         if (currentView !== 'admin') {
           renderCurrentView();
         } else {
-          // ACTUALIZA LOS INGRESOS Y PEDIDOS MÁGICAMENTE SIN RECARGAR
           if (typeof updateAdminStats === 'function') updateAdminStats();
-
           if (currentAdminTab === 'orders' || currentAdminTab === 'history') {
             switchAdminTab(currentAdminTab);
           }
         }
 
-        // 5. Refrescamos elementos globales (Burbuja del carrito, menú y colores)
         updateCartCount();
         updateUserDropdown();
         applyTheme();
@@ -633,236 +639,236 @@
 
     // ==================== Password Reset ====================
 
-    async function openForgotPassword() {
+async function openForgotPassword() {
 
-      const email = prompt("Ingresa tu correo electrónico:");
+    const email = prompt("Ingresa tu correo electrónico:");
 
-      if (!email) return;
+    if (!email) return;
 
-      try {
+    try {
 
         if (!window.sendPasswordResetEmail) {
-          showToast(
-            "Firebase aún no terminó de cargar",
-            "error"
-          );
-          return;
+            showToast(
+                "Firebase aún no terminó de cargar",
+                "error"
+            );
+            return;
         }
 
         await window.sendPasswordResetEmail(
-          window.firebaseAuth,
-          email
+            window.firebaseAuth,
+            email
         );
 
         showToast(
-          "Se envió un correo para restablecer la contraseña",
-          "success"
+            "Se envió un correo para restablecer la contraseña",
+            "success"
         );
 
-      }
-      catch (error) {
+    } 
+    catch (error) {
 
         console.log(error);
 
         let mensaje = "Error al enviar correo";
 
-        switch (error.code) {
+        switch(error.code){
 
-          case "auth/user-not-found":
-            mensaje = "No existe una cuenta con ese correo";
-            break;
+            case "auth/user-not-found":
+                mensaje = "No existe una cuenta con ese correo";
+                break;
 
-          case "auth/invalid-email":
-            mensaje = "Correo inválido";
-            break;
+            case "auth/invalid-email":
+                mensaje = "Correo inválido";
+                break;
 
-          case "auth/too-many-requests":
-            mensaje = "Demasiados intentos";
-            break;
+            case "auth/too-many-requests":
+                mensaje = "Demasiados intentos";
+                break;
         }
 
         showToast(mensaje, "error");
-      }
     }
+}
 
     // 🚀 INTEGRACIÓN FIREBASE DATA SDK (Importación dinámica)
-    async function initDataSdk() {
-      try {
+  async function initDataSdk() {
+  try {
 
-        // ==================== IMPORTAR MÓDULOS FIREBASE ====================
+    // ==================== IMPORTAR MÓDULOS FIREBASE ====================
 
-        const { initializeApp } = await import(
-          "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"
-        );
+    const { initializeApp } = await import(
+      "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"
+    );
 
-        const {
-          getFirestore,
-          collection,
-          onSnapshot,
-          addDoc,
-          updateDoc,
-          doc,
-          deleteDoc
-        } = await import(
-          "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
-        );
+    const {
+      getFirestore,
+      collection,
+      onSnapshot,
+      addDoc,
+      updateDoc,
+      doc,
+      deleteDoc
+    } = await import(
+      "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
+    );
 
-        const {
-          getAuth,
-          signInWithPopup,
-          GoogleAuthProvider,
-          sendPasswordResetEmail
-        } = await import(
-          "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"
-        );
+    const {
+      getAuth,
+      signInWithPopup,
+      GoogleAuthProvider,
+      sendPasswordResetEmail
+    } = await import(
+      "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"
+    );
 
-        // Guardar función global para usarla después
-        window.sendPasswordResetEmail = sendPasswordResetEmail;
+    // Guardar función global para usarla después
+    window.sendPasswordResetEmail = sendPasswordResetEmail;
 
-        // ==================== CONFIG FIREBASE ====================
+    // ==================== CONFIG FIREBASE ====================
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyC9-Utf05XxGAg3d4O5knrcThNqsR003xA",
-          authDomain: "web1-efd17.firebaseapp.com",
-          projectId: "web1-efd17",
-          storageBucket: "web1-efd17.firebasestorage.app",
-          messagingSenderId: "478052226455",
-          appId: "1:478052226455:web:42ab76145a8a418c9520d2",
-          measurementId: "G-1FT5V91RP7"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyC9-Utf05XxGAg3d4O5knrcThNqsR003xA",
+      authDomain: "web1-efd17.firebaseapp.com",
+      projectId: "web1-efd17",
+      storageBucket: "web1-efd17.firebasestorage.app",
+      messagingSenderId: "478052226455",
+      appId: "1:478052226455:web:42ab76145a8a418c9520d2",
+      measurementId: "G-1FT5V91RP7"
+    };
 
-        // ==================== INICIALIZAR ====================
+    // ==================== INICIALIZAR ====================
 
-        const app = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
 
-        const db = getFirestore(app);
+    const db = getFirestore(app);
 
-        window.firebaseAuth = getAuth(app);
+    window.firebaseAuth = getAuth(app);
 
-        window.googleProvider = new GoogleAuthProvider();
+    window.googleProvider = new GoogleAuthProvider();
 
-        // ==================== SDK PERSONALIZADO ====================
+    // ==================== SDK PERSONALIZADO ====================
 
-        window.dataSdk = {
+    window.dataSdk = {
 
-          async init(handler) {
+      async init(handler) {
 
-            const colRef = collection(db, 'tienda_data');
+        const colRef = collection(db, 'tienda_data');
 
-            onSnapshot(colRef, (snapshot) => {
+        onSnapshot(colRef, (snapshot) => {
 
-              const data = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                __backendId: doc.id
-              }));
+          const data = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            __backendId: doc.id
+          }));
 
-              handler.onDataChanged(data);
+          handler.onDataChanged(data);
 
-            });
+        });
 
-            return { isOk: true };
-          },
+        return { isOk: true };
+      },
 
-          async create(data) {
+      async create(data) {
 
-            try {
+        try {
 
-              const docRef = await addDoc(
-                collection(db, 'tienda_data'),
-                data
-              );
-
-              return {
-                isOk: true,
-                data: {
-                  ...data,
-                  __backendId: docRef.id
-                }
-              };
-
-            } catch (e) {
-
-              console.error(
-                "Error al crear documento:",
-                e
-              );
-
-              return { isOk: false };
-            }
-          },
-
-          async update(data) {
-
-            try {
-
-              const dataToUpdate = { ...data };
-
-              const id = dataToUpdate.__backendId;
-
-              delete dataToUpdate.__backendId;
-
-              await updateDoc(
-                doc(db, 'tienda_data', id),
-                dataToUpdate
-              );
-
-              return { isOk: true };
-
-            } catch (e) {
-
-              console.error(
-                "Error al actualizar documento:",
-                e
-              );
-
-              return { isOk: false };
-            }
-          },
-
-          async delete(data) {
-
-            try {
-
-              await deleteDoc(
-                doc(db, 'tienda_data', data.__backendId)
-              );
-
-              return { isOk: true };
-
-            } catch (e) {
-
-              console.error(
-                "Error al eliminar documento:",
-                e
-              );
-
-              return { isOk: false };
-            }
-          }
-
-        };
-
-        const result = await window.dataSdk.init(dataHandler);
-
-        if (!result.isOk) {
-          throw new Error(
-            'Fallo al inicializar Firebase SDK'
+          const docRef = await addDoc(
+            collection(db, 'tienda_data'),
+            data
           );
+
+          return {
+            isOk: true,
+            data: {
+              ...data,
+              __backendId: docRef.id
+            }
+          };
+
+        } catch (e) {
+
+          console.error(
+            "Error al crear documento:",
+            e
+          );
+
+          return { isOk: false };
         }
+      },
 
-      } catch (error) {
+      async update(data) {
 
-        console.error(
-          'Error cargando Firebase:',
-          error
-        );
+        try {
 
-        isLoading = false;
+          const dataToUpdate = { ...data };
 
-        renderCurrentView();
+          const id = dataToUpdate.__backendId;
+
+          delete dataToUpdate.__backendId;
+
+          await updateDoc(
+            doc(db, 'tienda_data', id),
+            dataToUpdate
+          );
+
+          return { isOk: true };
+
+        } catch (e) {
+
+          console.error(
+            "Error al actualizar documento:",
+            e
+          );
+
+          return { isOk: false };
+        }
+      },
+
+      async delete(data) {
+
+        try {
+
+          await deleteDoc(
+            doc(db, 'tienda_data', data.__backendId)
+          );
+
+          return { isOk: true };
+
+        } catch (e) {
+
+          console.error(
+            "Error al eliminar documento:",
+            e
+          );
+
+          return { isOk: false };
+        }
       }
+
+    };
+
+    const result = await window.dataSdk.init(dataHandler);
+
+    if (!result.isOk) {
+      throw new Error(
+        'Fallo al inicializar Firebase SDK'
+      );
     }
 
+  } catch (error) {
+
+    console.error(
+      'Error cargando Firebase:',
+      error
+    );
+
+    isLoading = false;
+
+    renderCurrentView();
+  }
+}
+    
 
     initDataSdk();
 
@@ -1462,25 +1468,7 @@
               <label class="block text-sm font-medium mb-1">Correo electrónico</label>
               <input type="email" id="register-email" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="tu@email.com">
             </div>
-        <div>
-  <label class="block text-sm font-medium mb-1">Contraseña</label>
-  <input type="password" id="login-password" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="••••••••">
-</div>
-
-<div class="text-right">
-  <button 
-    type="button"
-    onclick="openForgotPassword()"
-    class="text-sm text-gray-500 hover:text-black hover:underline">
-
-    ¿Olvidaste tu contraseña?
-
-  </button>
-</div>
-
-<button type="submit" id="login-btn" class="btn-primary w-full py-3 rounded-lg font-medium">
-  Iniciar Sesión
-</button>
+        
               <label class="block text-sm font-medium mb-1">Confirmar contraseña</label>
               <input type="password" id="register-confirm" required class="input-field w-full px-4 py-3 rounded-lg" placeholder="••••••••">
             </div>
@@ -1523,24 +1511,24 @@
       btn.disabled = true;
       btn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Ingresando...';
 
-      // Check for demo admin
-      if (email === 'admin@gyg.com' && password === 'admin123') {
-        currentUser = {
-          __backendId: 'admin-demo',
+      const hashedPassword = hashPassword(password);
+      
+      // 1. Buscamos primero en la base de datos (por si ya tiene contraseña nueva)
+      let user = appData.users.find(u => u.email === email && u.password === hashedPassword);
+
+      // 2. Verificamos si el usuario demo ya fue modificado y guardado en la BD
+      const isDemoInDB = appData.users.some(u => u.email === 'admin@gyg.com');
+
+      // 3. Si NO está en la base de datos, habilitamos el acceso por defecto
+      if (!user && !isDemoInDB && email === 'admin@gyg.com' && password === 'admin123') {
+        user = {
+          __backendId: 'admin-demo-virtual',
           type: 'user',
-          name: 'Administrador',
+          name: 'Administrador Demo',
           email: 'admin@gyg.com',
           role: 'admin'
         };
-        closeAuthModal();
-        showToast('¡Bienvenido, Administrador!');
-        updateUserDropdown();
-        renderCurrentView();
-        return;
       }
-
-      const hashedPassword = hashPassword(password);
-      const user = appData.users.find(u => u.email === email && u.password === hashedPassword);
 
       if (user) {
         currentUser = user;
@@ -1678,46 +1666,46 @@
     }
     // ==================== Password Reset ====================
 
-    async function openForgotPassword() {
+async function openForgotPassword() {
 
-      const email = prompt(
-        "Ingresa tu correo electrónico para restablecer tu contraseña:"
-      );
+  const email = prompt(
+    "Ingresa tu correo electrónico para restablecer tu contraseña:"
+  );
 
-      if (!email) return;
+  if (!email) return;
 
-      try {
+  try {
 
-        await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(auth, email);
 
-        showToast(
-          "Se envió un correo para restablecer tu contraseña"
-        );
+    showToast(
+      "Se envió un correo para restablecer tu contraseña"
+    );
 
-      } catch (error) {
+  } catch (error) {
 
-        console.error(error);
+    console.error(error);
 
-        let message = "No se pudo enviar el correo";
+    let message = "No se pudo enviar el correo";
 
-        switch (error.code) {
+    switch(error.code){
 
-          case 'auth/user-not-found':
-            message = 'No existe una cuenta con ese correo';
-            break;
+      case 'auth/user-not-found':
+        message = 'No existe una cuenta con ese correo';
+        break;
 
-          case 'auth/invalid-email':
-            message = 'Correo inválido';
-            break;
+      case 'auth/invalid-email':
+        message = 'Correo inválido';
+        break;
 
-          case 'auth/too-many-requests':
-            message = 'Demasiados intentos. Intenta más tarde';
-            break;
-        }
-
-        showToast(message, 'error');
-      }
+      case 'auth/too-many-requests':
+        message = 'Demasiados intentos. Intenta más tarde';
+        break;
     }
+
+    showToast(message,'error');
+  }
+}
 
     // ==================== Cart Functions ====================
     function loadUserCart() {
@@ -2562,12 +2550,20 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Procesando...'; }
 
       if (window.dataSdk && appData.orders.length < 999) {
+        
+        // 👇 NUEVO: Guardamos los productos del carrito para el ticket
+        const orderItems = cart.map(item => ({
+          productId: item.productId,
+          productName: item.productName,
+          price: item.price,
+          quantity: item.quantity || 1
+        }));
+
         const result = await window.dataSdk.create({
           type: 'order',
           userId: currentUser.__backendId,
           total: pendingOrderData.total,
           status: pendingOrderData.paymentMethod === 'transfer' ? 'validando pago' : 'procesando',
-          // 👇 GUARDAMOS EN FIREBASE LOS NUEVOS DATOS 👇
           address: pendingOrderData.address,
           neighborhood: pendingOrderData.neighborhood,
           zip: pendingOrderData.zip,
@@ -2575,6 +2571,7 @@
           phone: pendingOrderData.phone,
           paymentMethod: pendingOrderData.paymentMethod,
           receiptImage: receiptImage,
+          items: orderItems, // <--- Aquí se guardan los productos en Firebase
           createdAt: new Date().toISOString()
         });
 
@@ -2587,10 +2584,18 @@
             }
             if (item.__backendId) await window.dataSdk.delete(item);
           }
+          
+          const savedItems = [...cart]; // Copiamos los items antes de vaciar el carrito
           cart = [];
           updateCartCount();
+          
           showToast('¡Pedido realizado con éxito!');
-          navigateTo('orders');
+          navigateTo('orders'); // Navegamos a su historial
+          
+          // 👇 NUEVO: Mostramos el ticket emergente mágico con sus compras
+          const finalOrder = result.data || { ...pendingOrderData, __backendId: result.data?.__backendId || 'RECIENTE', createdAt: new Date().toISOString() };
+          showTicketModal(finalOrder, savedItems);
+          
         } else {
           showToast('Error al procesar el pedido', 'error');
           if (btn) { btn.disabled = false; btn.textContent = `Confirmar Pedido - ${formatPrice(pendingOrderData.total)}`; }
@@ -2598,6 +2603,121 @@
       }
     }
 
+    // ==================== GENERACIÓN DE TICKET Y PDF ====================
+
+    if (!document.getElementById('ticket-modal')) {
+      const ticketHtml = `
+        <div id="ticket-modal" class="fixed inset-0 z-[80] hidden">
+          <div class="modal-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeTicketModal()"></div>
+          <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-sm bg-gray-100 rounded-2xl overflow-hidden slide-up flex flex-col max-h-[90vh] shadow-2xl">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white">
+              <h3 class="font-display text-lg font-semibold">Comprobante</h3>
+              <button onclick="closeTicketModal()" class="text-gray-400 hover:bg-gray-200 p-1 rounded-full transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            
+            <div id="ticket-scroll-area" class="p-6 overflow-y-auto flex-1">
+               <div id="ticket-pdf-content" class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-gray-800 font-mono text-sm mx-auto relative">
+                 </div>
+            </div>
+            
+            <div class="p-4 bg-white border-t border-gray-200 flex gap-3">
+              <button onclick="downloadTicketPDF()" class="btn-primary flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2">
+                📥 Descargar PDF
+              </button>
+              <button onclick="closeTicketModal()" class="bg-gray-200 text-black hover:bg-gray-300 flex-1 py-3 rounded-lg font-medium transition-colors">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', ticketHtml);
+    }
+
+    function showTicketModal(order, items) {
+       window.currentTicketOrder = order; 
+       const container = document.getElementById('ticket-pdf-content');
+       
+       const itemsHtml = items && items.length > 0 
+        ? items.map(item => `
+            <div class="flex justify-between mb-1 text-xs">
+               <span class="truncate pr-2">${item.quantity || 1}x ${item.productName}</span>
+               <span>${formatPrice(item.price * (item.quantity || 1))}</span>
+            </div>
+          `).join('')
+        : `<div class="text-xs text-gray-500 italic text-center py-2">Resumen de productos no disponible para pedidos antiguos</div>`;
+
+       container.innerHTML = `
+          <div class="text-center mb-6 border-b-2 border-dashed border-gray-300 pb-4">
+             <h2 class="font-display font-bold text-2xl uppercase tracking-widest">${siteSettings.storeName || 'Luxe Elixir'}</h2>
+             <p class="text-xs text-gray-500 mt-1">${siteSettings.contactAddress || 'Comitán de Domínguez, Chiapas'}</p>
+             <p class="text-xs text-gray-500 mt-1">Tel: ${siteSettings.whatsappNumber || '-'}</p>
+          </div>
+          
+          <div class="mb-4 text-xs space-y-1">
+             <p><strong>TICKET:</strong> #${order.__backendId ? order.__backendId.slice(-6).toUpperCase() : '000000'}</p>
+             <p><strong>FECHA:</strong> ${new Date(order.createdAt).toLocaleString('es-MX')}</p>
+             <p><strong>CLIENTE:</strong> ${currentUser ? currentUser.name : 'Invitado'}</p>
+          </div>
+          
+          <div class="border-t-2 border-b-2 border-dashed border-gray-300 py-3 mb-4">
+             ${itemsHtml}
+          </div>
+          
+          <div class="flex justify-between font-bold text-lg mb-6">
+             <span>TOTAL:</span>
+             <span>${formatPrice(order.total)}</span>
+          </div>
+          
+          <div class="text-center text-xs space-y-1 text-gray-600">
+             <p>ESTADO: <span class="uppercase font-semibold">${order.status}</span></p>
+             <p>PAGO: <span class="uppercase">${order.paymentMethod === 'transfer' ? 'Transferencia' : 'Tarjeta'}</span></p>
+          </div>
+          
+          <div class="mt-8 text-center text-xs font-semibold">
+             <p>¡GRACIAS POR TU COMPRA!</p>
+             <p class="mt-1 font-normal text-[10px]">Guarda este comprobante para cualquier aclaración.</p>
+          </div>
+       `;
+       
+       document.getElementById('ticket-modal').classList.remove('hidden');
+    }
+
+    function closeTicketModal() {
+       document.getElementById('ticket-modal').classList.add('hidden');
+    }
+
+    function downloadTicketPDF() {
+        const element = document.getElementById('ticket-pdf-content');
+        const orderId = window.currentTicketOrder && window.currentTicketOrder.__backendId 
+            ? window.currentTicketOrder.__backendId.slice(-6).toUpperCase() : '000000';
+
+        const opt = {
+          margin:       0.2,
+          filename:     `Ticket_G&G_${orderId}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true },
+          jsPDF:        { unit: 'in', format: [3.5, 5.5], orientation: 'portrait' } 
+        };
+        
+        if (typeof html2pdf === 'undefined') {
+            showToast('Preparando PDF...', 'info');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            script.onload = () => {
+               html2pdf().set(opt).from(element).save();
+               showToast('Ticket descargado', 'success');
+            };
+            document.head.appendChild(script);
+        } else {
+            html2pdf().set(opt).from(element).save();
+        }
+    }
+
+    window.downloadPastTicket = function(orderId) {
+        const order = appData.orders.find(o => o.__backendId === orderId);
+        if (order) showTicketModal(order, order.items || []); 
+    }
     // ==================== Admin Panel ====================
     // 👇 REEMPLAZA DESDE AQUÍ 👇
     let currentAdminTab = 'products';
@@ -3047,6 +3167,8 @@
           <p class="text-gray-500 text-sm">${appData.users.length} usuarios en total</p>
         </div>
         
+        <div id="user-form-container"></div>
+        
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -3081,11 +3203,17 @@
                       ${user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-MX') : 'N/A'}
                     </td>
                     <td class="px-6 py-4 text-right">
-                      <button onclick="deleteUser('${user.__backendId}')" 
-                        class="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg font-medium text-sm transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed" 
-                        ${user.__backendId === currentUser.__backendId ? 'disabled title="No puedes eliminar tu propia cuenta"' : ''}>
-                        Eliminar
-                      </button>
+                      <div class="flex justify-end gap-2">
+                        <button onclick="editUser(${index})" 
+                          class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg font-medium text-sm transition-colors">
+                          Editar
+                        </button>
+                        <button onclick="deleteUser('${user.__backendId}')" 
+                          class="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg font-medium text-sm transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed" 
+                          ${user.__backendId === currentUser.__backendId ? 'disabled title="No puedes eliminar tu propia cuenta"' : ''}>
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `).join('')}
@@ -3120,6 +3248,35 @@
           // Firebase detectará el cambio y actualizará la pantalla solo.
         } else {
           showToast('Error al eliminar el usuario', 'error');
+        }
+      }
+    }
+
+    async function updateUserRole(index, newRole) {
+      const user = appData.users[index];
+      
+      if (user && window.dataSdk) {
+        const oldRole = user.role;
+        user.role = newRole;
+        showToast('Actualizando rol...', 'info');
+
+        let result;
+        // Si se cambia el rol del demo virtual desde el select, lo creamos
+        if (user.__backendId === 'admin-demo-virtual') {
+          const userToCreate = { ...user };
+          delete userToCreate.__backendId;
+          result = await window.dataSdk.create(userToCreate);
+        } else {
+          result = await window.dataSdk.update(user);
+        }
+        
+        if (result.isOk) {
+          showToast('Rol actualizado correctamente', 'success');
+          switchAdminTab('users');
+        } else {
+          user.role = oldRole;
+          showToast('Error al actualizar', 'error');
+          switchAdminTab('users');
         }
       }
     }
@@ -3190,28 +3347,33 @@
         const existingUser = appData.users[editingUserIndex];
         const newPassword = document.getElementById('edit-user-password').value;
 
-        // Preparamos los nuevos datos
         const updatedUser = {
           ...existingUser,
           name: document.getElementById('edit-user-name').value.trim(),
           role: document.getElementById('edit-user-role').value
         };
 
-        // Si el administrador escribió una nueva contraseña, la encriptamos y la agregamos al objeto
         if (newPassword.trim().length >= 6) {
           updatedUser.password = hashPassword(newPassword);
         }
 
         if (window.dataSdk) {
-          const result = await window.dataSdk.update(updatedUser);
+          let result;
+          // 👇 Verificamos si es el usuario virtual para CREARLO en vez de actualizarlo
+          if (updatedUser.__backendId === 'admin-demo-virtual') {
+            delete updatedUser.__backendId; // Quitamos el ID falso para que Firebase le asigne uno real
+            result = await window.dataSdk.create(updatedUser);
+          } else {
+            result = await window.dataSdk.update(updatedUser);
+          }
+
           if (result.isOk) {
             showToast('Usuario actualizado exitosamente');
             closeUserForm();
-            // Actualizamos la vista de la tabla
             switchAdminTab('users');
 
-            // Si el admin se editó a sí mismo, actualizar el menú superior
-            if (currentUser.__backendId === updatedUser.__backendId) {
+            // Si el admin se modificó a sí mismo, actualizar la sesión actual
+            if (currentUser.email === updatedUser.email) {
               currentUser = updatedUser;
               updateUserDropdown();
             }
@@ -3680,10 +3842,15 @@
 
       </div>
 
-      <div class="p-6 border-t border-gray-100 bg-gray-50">
+     <div class="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
+        
+        <button onclick="downloadPastTicket('${order.__backendId}')" 
+          class="bg-black text-white hover:bg-gray-800 flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+          📥 Descargar Ticket
+        </button>
 
-        <button onclick="closeOrderDetails()"
-        class="btn-primary w-full py-3 rounded-lg font-medium">
+        <button onclick="closeOrderDetails()" 
+          class="bg-gray-200 text-black hover:bg-gray-300 flex-1 py-3 rounded-lg font-medium transition-colors">
           Cerrar
         </button>
 
@@ -3692,7 +3859,7 @@
     </div>
   `;
 
-      document.body.appendChild(overlay); .0
+      document.body.appendChild(overlay);
     }
 
     // Función para que el Admin suba la foto de la guía
